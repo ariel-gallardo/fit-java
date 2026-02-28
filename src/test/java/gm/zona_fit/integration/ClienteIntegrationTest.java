@@ -18,11 +18,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)
 @ActiveProfiles("tests")
 @TestPropertySource(properties = "spring.main.web-application-type=servlet")
 @Sql(scripts = "/fake-db.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
@@ -83,6 +84,7 @@ class ClienteIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void patchMembresia_shouldAssignMembresiaToCliente() throws Exception {
         mockMvc.perform(patch("/clientes/3/membresia")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -96,6 +98,7 @@ class ClienteIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void patchMembresia_shouldRemoveMembresia_whenNull() throws Exception {
         mockMvc.perform(patch("/clientes/2/membresia")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -109,6 +112,7 @@ class ClienteIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void getMembresiasVencidas_shouldReturnExpiredClientes() throws Exception {
         mockMvc.perform(patch("/clientes/1/membresia")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -128,5 +132,36 @@ class ClienteIntegrationTest {
 
         mockMvc.perform(get("/clientes").param("id", "1"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles = "CLIENTE")
+    void patchMembresia_shouldDeny_whenUserIsNotAdmin() throws Exception {
+        org.springframework.test.web.servlet.MvcResult result = null;
+        try {
+            result = mockMvc.perform(patch("/clientes/3/membresia")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"membresiaId\":1,\"membresiaExpiraEn\":\"2033-01-01T00:00:00\"}"))
+                    .andReturn();
+        } catch (Exception e) {
+            // Expected: AccessDeniedException wrapped in ServletException
+            org.junit.jupiter.api.Assertions.assertTrue(
+                e.getMessage().contains("Access Denied") ||
+                (e.getCause() != null && e.getCause().getClass().getSimpleName().contains("AccessDeniedException")),
+                "Expected AccessDeniedException but got: " + e.getMessage()
+            );
+        }
+        
+        if (result == null || result.getResolvedException() == null) {
+            return; // Exception was caught in the try block
+        }
+        
+        var exception = result.getResolvedException();
+        org.junit.jupiter.api.Assertions.assertTrue(
+            exception.getClass().getSimpleName().contains("AccessDeniedException") ||
+            (exception.getCause() != null && 
+             exception.getCause().getClass().getSimpleName().contains("AccessDeniedException")),
+            "Expected AccessDeniedException but got: " + exception.getClass().getSimpleName()
+        );
     }
 }

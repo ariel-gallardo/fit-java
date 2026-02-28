@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/clientes")
@@ -66,6 +67,7 @@ public class ClienteController {
     }
 
     @PatchMapping("/{id}/membresia")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> patchMembresia(
             @PathVariable Integer id,
             @RequestBody(required = false) ClienteMembresiaPatchDTO patchDTO) {

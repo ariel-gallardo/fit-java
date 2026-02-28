@@ -27,6 +27,7 @@ import gm.zona_fit.domain.Entities.Membresia;
 import gm.zona_fit.domain.Entities.MembresiaTipo;
 import gm.zona_fit.infrastructure.IClienteRepository;
 import gm.zona_fit.infrastructure.IMembresiaRepository;
+import gm.zona_fit.infrastructure.IUsuarioRepository;
 import jakarta.persistence.EntityNotFoundException;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,6 +39,9 @@ class ClienteServiceUnitTest {
 
     @Mock
     private IMembresiaRepository membresiaRepository;
+
+    @Mock
+    private IUsuarioRepository usuarioRepository;
 
     @InjectMocks
     private ClienteService clienteService;

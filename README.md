@@ -1,20 +1,23 @@
 # ZonaFit Spring - Gestión de Clientes
 
-Aplicación Spring Boot para la gestión de clientes de un gimnasio.
+Aplicación Spring Boot para la gestión de clientes de un gimnasio con autenticación JWT y control de acceso basado en roles.
 
 ## Descripción
 
-ZonaFit es una API REST construida con Spring Boot para administrar clientes y sus membresías.
+ZonaFit es una API REST construida con Spring Boot para administrar clientes y sus membresías con seguridad integrada.
 
 Funcionalidades principales:
 
 - CRUD completo de clientes.
-- Asociación opcional de membresía al cliente.
+- Asociación opcional de membresía al cliente (solo administrador).
 - Tipo de membresía manejado con `enum` (`SILVER`, `GOLD`, `BRONZE`).
 - Persistencia del `enum` como `STRING` en base de datos.
 - Expiración de membresía por cliente (`membresiaExpiraEn`).
+- **Autenticación JWT**: registro e inicio de sesión de usuarios.
+- **OAuth2**: integración con proveedores externos (configurado).
+- **Autenticación por roles**: `ADMIN` y `CLIENTE` con control de acceso granular.
 - Middleware centralizado para manejo de errores.
-- Suite de pruebas unitarias e integración.
+- Suite de pruebas unitarias e integración con cobertura de autorización.
 
 ## Tecnología
 
@@ -22,7 +25,8 @@ Funcionalidades principales:
 - **Lenguaje**: Java 21
 - **ORM**: JPA/Hibernate
 - **Base de datos (tests)**: H2 en memoria
-- **Testing**: JUnit 5 + Mockito
+- **Seguridad**: Spring Security, JWT (jjwt), OAuth2
+- **Testing**: JUnit 5 + Mockito + Spring Security Test
 - **Build**: Maven
 
 ## Estructura del proyecto
@@ -34,19 +38,38 @@ src/
 │   │   ├── dto/
 │   │   │   ├── ClientDTO.java
 │   │   │   ├── ClienteMembresiaPatchDTO.java
-│   │   │   └── MembresiaDTO.java
+│   │   │   ├── MembresiaDTO.java
+│   │   │   ├── UserRegisterDTO.java
+│   │   │   ├── UserLoginDTO.java
+│   │   │   ├── AuthResponseDTO.java
+│   │   │   └── UserDTO.java
 │   │   └── services/
 │   │       ├── ClienteService.java
-│   │       └── IClienteService.java
+│   │       ├── IClienteService.java
+│   │       ├── UsuarioService.java
+│   │       ├── IUsuarioService.java
+│   │       ├── AuthService.java
+│   │       ├── IAuthService.java
+│   │       ├── JwtService.java
+│   │       └── CustomUserDetailsService.java
 │   ├── domain/Entities/
 │   │   ├── Cliente.java
 │   │   ├── Membresia.java
-│   │   └── MembresiaTipo.java
+│   │   ├── MembresiaTipo.java
+│   │   ├── Usuario.java
+│   │   └── RolUsuario.java
 │   ├── infrastructure/
 │   │   ├── IClienteRepository.java
-│   │   └── IMembresiaRepository.java
+│   │   ├── IMembresiaRepository.java
+│   │   └── IUsuarioRepository.java
+│   ├── security/
+│   │   ├── SecurityConfig.java
+│   │   └── JwtAuthenticationFilter.java
 │   └── presentation/
-│       ├── controllers/ClienteController.java
+│       ├── controllers/
+│       │   ├── ClienteController.java
+│       │   ├── AuthController.java
+│       │   └── UsuarioController.java
 │       └── middlewares/EntityNotFoundMiddleware.java
 └── test/
     ├── java/gm/zona_fit/
@@ -55,7 +78,9 @@ src/
     │   │   └── repositories/
     │   │       ├── ClienteRepositoryUnitTest.java
     │   │       └── MembresiaRepositoryUnitTest.java
-    │   └── integration/ClienteIntegrationTest.java
+    │   └── integration/
+    │       ├── ClienteIntegrationTest.java
+    │       └── AuthIntegrationTest.java
     └── resources/
         ├── application-tests.properties
         └── fake-db.sql
@@ -69,29 +94,82 @@ src/
 - `Cliente` tiene relación opcional con `Membresia`.
 - `Cliente` almacena fecha/hora de expiración en `membresiaExpiraEn`.
 
-## API REST
+## Autenticación y Autorización
+
+### Roles
+
+- **ADMIN**: Acceso completo a todas las operaciones (crear, leer, actualizar, eliminar). Puede asociar y desasociar membresías.
+- **CLIENTE**: Acceso limitado a lectura de datos propios. No puede modificar membresías ni datos de otros clientes.
+
+### Flujo de autenticación
+
+1. **Registro**: `POST /auth/register` con `username`, `email` y `password`.
+   - Se crea automáticamente un usuario con rol `CLIENTE`.
+   - Se asocia un cliente sin membresía por defecto.
+
+2. **Login**: `POST /auth/login` con `username` y `password`.
+   - Retorna un JWT válido por 24 horas.
+
+3. **Solicitudes autenticadas**: Incluir JWT en header `Authorization: Bearer <token>`.
+
+### Endpoints de autenticación
+
+#### Registro
+```http
+POST /auth/register
+Content-Type: application/json
+
+{
+  "username": "juan_perez",
+  "email": "juan@example.com",
+  "password": "MiSegura123!"
+}
+```
+
+#### Login
+```http
+POST /auth/login
+Content-Type: application/json
+
+{
+  "username": "juan_perez",
+  "password": "MiSegura123!"
+}
+
+Respuesta:
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "expiresIn": 86400
+}
+```
+
+## API REST - Clientes
 
 ### Endpoints
 
 #### Listar clientes
 ```http
 GET /clientes
+Authorization: Bearer <token>
 ```
 
 #### Obtener cliente por id
 ```http
 GET /clientes?id={id}
+Authorization: Bearer <token>
 ```
 
 #### Listar clientes con membresía vencida
 ```http
 GET /clientes/membresias-vencidas
+Authorization: Bearer <token>
 ```
 
 #### Crear cliente
 ```http
 POST /clientes
 Content-Type: application/json
+Authorization: Bearer <token>
 
 {
   "nombre": "Juan",
@@ -105,6 +183,7 @@ Content-Type: application/json
 ```http
 PUT /clientes/{id}
 Content-Type: application/json
+Authorization: Bearer <token>
 
 {
   "nombre": "Juan",
@@ -114,16 +193,19 @@ Content-Type: application/json
 }
 ```
 
-#### Asociar/desasociar membresía (opcional)
+#### Asociar/desasociar membresía (solo ADMIN)
 ```http
 PATCH /clientes/{id}/membresia
 Content-Type: application/json
+Authorization: Bearer <token>
 
 {
   "membresiaId": 1,
   "membresiaExpiraEn": "2033-01-01T00:00:00"
 }
 ```
+
+**Nota**: Solo usuarios con rol `ADMIN` pueden modificar membresías. Un intento de `CLIENTE` resultará en `403 Forbidden`.
 
 Para quitar membresía y expiración:
 ```json
@@ -136,35 +218,44 @@ Para quitar membresía y expiración:
 #### Eliminar cliente
 ```http
 DELETE /clientes/{id}
+Authorization: Bearer <token>
 ```
 
 ## Casos de uso
 
-### 1) Alta de cliente con membresía
+### 1) Registro de nuevo usuario
 
-- Se crea el cliente con `membresia` (id de la membresía) y `membresiaExpiraEn`.
-- El backend valida que la membresía exista.
+- Se registra el usuario en `POST /auth/register`.
+- Se crea automáticamente un cliente sin membresía asociada con rol `CLIENTE`.
+- El usuario recibe un JWT para autenticarse en solicitudes posteriores.
+
+### 2) Alta de cliente con membresía (solo ADMIN)
+
+- El administrador crea el cliente con `POST /clientes` con membresía inicial.
+- Se valida que la membresía exista.
 - Si `membresia` viene en `null`, la expiración también queda en `null`.
 
-### 2) Renovación de membresía
+### 3) Renovación de membresía (solo ADMIN)
 
-- Se usa `PATCH /clientes/{id}/membresia` con el mismo `membresiaId` y una nueva fecha en `membresiaExpiraEn`.
+- El administrador usa `PATCH /clientes/{id}/membresia` con el mismo `membresiaId` y una nueva fecha en `membresiaExpiraEn`.
 - Permite extender vigencia sin tener que actualizar todos los datos del cliente.
+- Un intento de `CLIENTE` resulta en `403 Forbidden`.
 
-### 3) Cambio de plan
+### 4) Cambio de plan (solo ADMIN)
 
-- Se usa `PATCH /clientes/{id}/membresia` con un `membresiaId` distinto (`SILVER`, `GOLD` o `BRONZE`) y su nueva expiración.
+- El administrador usa `PATCH /clientes/{id}/membresia` con un `membresiaId` distinto (`SILVER`, `GOLD` o `BRONZE`) y su nueva expiración.
 - El cliente conserva sus datos personales y solo cambia su relación de membresía.
 
-### 4) Baja de membresía
+### 5) Baja de membresía (solo ADMIN)
 
-- Se envía `membresiaId: null` y `membresiaExpiraEn: null`.
+- El administrador envía `membresiaId: null` y `membresiaExpiraEn: null`.
 - El cliente queda activo en el sistema pero sin membresía asociada.
 
-### 5) Consulta de membresías vencidas
+### 6) Consulta de membresías vencidas
 
 - Se usa `GET /clientes/membresias-vencidas`.
 - Devuelve clientes con membresía asignada cuya `membresiaExpiraEn` es anterior al momento actual.
+- Requiere autenticación (cualquier rol).
 
 ## Pruebas
 
@@ -195,7 +286,16 @@ mvn test -Pintegration-tests
 
 ### Estado actual de cobertura
 
-Total esperado (según la última ejecución): **35 tests**.
+Total esperado (según la última ejecución): **39 tests**.
+
+- **Unitarios**: 16 tests (service + repository).
+- **Integración**: 23 tests (Cliente + Autenticación - incluye validaciones de autorización).
+
+#### Nuevos tests de autorización
+
+- Verificación de que `CLIENTE` recibe `403 Forbidden` al intentar modificar membresías.
+- Validación de que `ADMIN` puede ejecutar operaciones protegidas.
+- Confirmación de que nuevos usuarios se registran sin membresía.
 
 ## Configuración de tests
 

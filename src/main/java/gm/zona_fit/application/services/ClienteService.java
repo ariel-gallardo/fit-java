@@ -10,6 +10,7 @@ import gm.zona_fit.domain.Entities.Cliente;
 import gm.zona_fit.domain.Entities.Membresia;
 import gm.zona_fit.infrastructure.IClienteRepository;
 import gm.zona_fit.infrastructure.IMembresiaRepository;
+import gm.zona_fit.infrastructure.IUsuarioRepository;
 import jakarta.persistence.EntityNotFoundException;
 
 @Service
@@ -20,6 +21,9 @@ public class ClienteService implements IClienteService {
 
     @Autowired
     private IMembresiaRepository membresiaRepository;
+
+    @Autowired
+    private IUsuarioRepository usuarioRepository;
 
     @Override
     public List<Cliente> getAll() {
@@ -48,6 +52,11 @@ public class ClienteService implements IClienteService {
                 String.format("%s with id %s not found.", "Cliente", id)
             );
         }
+
+        if (usuarioRepository.existsByClienteId(id)) {
+            usuarioRepository.deleteByClienteId(id);
+        }
+
         clienteRepository.deleteById(id);
     }
 
@@ -64,10 +73,10 @@ public class ClienteService implements IClienteService {
 
     @Override
     public void update(Integer id, ClientDTO cliente) {
-    var current = clienteRepository.findById(id)
-        .orElseThrow(() -> new EntityNotFoundException(
-            String.format("%s with id %s not found.", "Cliente", id)
-        ));
+        clienteRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException(
+                String.format("%s with id %s not found.", "Cliente", id)
+            ));
         clienteRepository.save(new Cliente(
             id,
             cliente.nombre(),
