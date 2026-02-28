@@ -101,6 +101,15 @@ src/
 - **ADMIN**: Acceso completo a todas las operaciones (crear, leer, actualizar, eliminar). Puede asociar y desasociar membresías.
 - **CLIENTE**: Acceso limitado a lectura de datos propios. No puede modificar membresías ni datos de otros clientes.
 
+### Filtro global de Usuario por token
+
+- La entidad `Usuario` tiene un filtro global dinámico de Hibernate.
+- El JWT incluye los claims `role` y `userId`.
+- Si el token es de `CLIENTE`, todas las consultas al repositorio de usuarios se limitan automáticamente a `id = userId` del token.
+- Si el token es de `ADMIN`, no se aplica restricción por id y puede consultar cualquier usuario.
+- `GET /usuarios` está habilitado para `ADMIN` y `CLIENTE`, pero para `CLIENTE` devuelve solo su propio usuario.
+- `GET /usuarios/{id}` para `CLIENTE` devuelve `404` cuando intenta acceder a otro usuario.
+
 ### Flujo de autenticación
 
 1. **Registro**: `POST /auth/register` con `username`, `email` y `password`.
@@ -220,6 +229,28 @@ Para quitar membresía y expiración:
 DELETE /clientes/{id}
 Authorization: Bearer <token>
 ```
+
+## API REST - Usuarios
+
+### Endpoints
+
+#### Listar usuarios
+```http
+GET /usuarios
+Authorization: Bearer <token>
+```
+
+- `ADMIN`: obtiene todos los usuarios.
+- `CLIENTE`: obtiene solo su propio usuario (filtrado por `userId` del token).
+
+#### Obtener usuario por id
+```http
+GET /usuarios/{id}
+Authorization: Bearer <token>
+```
+
+- `ADMIN`: puede consultar cualquier id.
+- `CLIENTE`: solo su propio id; otro id responde `404 Not Found`.
 
 ## Casos de uso
 

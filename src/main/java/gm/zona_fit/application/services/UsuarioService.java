@@ -62,7 +62,7 @@ public class UsuarioService implements IUsuarioService {
 
     @Override
     public UserDTO getById(Integer id) {
-        var usuario = usuarioRepository.findById(id)
+        var usuario = usuarioRepository.findOneById(id)
                 .orElseThrow(() -> new EntityNotFoundException(
                         String.format("%s with id %s not found.", "Usuario", id)));
         return toDto(usuario);

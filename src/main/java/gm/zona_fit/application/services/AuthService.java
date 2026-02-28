@@ -35,7 +35,7 @@ public class AuthService implements IAuthService {
                 .authorities("ROLE_" + created.rol())
                 .build();
 
-        var token = jwtService.generateToken(userDetails, created.rol());
+        var token = jwtService.generateToken(userDetails, created.rol(), created.id());
 
         return new AuthResponseDTO(token, created.username(), created.rol());
     }
@@ -52,7 +52,7 @@ public class AuthService implements IAuthService {
                 .authorities("ROLE_" + usuario.getRol().name())
                 .build();
 
-        var token = jwtService.generateToken(userDetails, usuario.getRol().name());
+        var token = jwtService.generateToken(userDetails, usuario.getRol().name(), usuario.getId());
         return new AuthResponseDTO(token, usuario.getUsername(), usuario.getRol().name());
     }
 
@@ -70,7 +70,7 @@ public class AuthService implements IAuthService {
                 .authorities("ROLE_" + usuario.getRol().name())
                 .build();
 
-        var token = jwtService.generateToken(userDetails, usuario.getRol().name());
+        var token = jwtService.generateToken(userDetails, usuario.getRol().name(), usuario.getId());
         return new AuthResponseDTO(token, usuario.getUsername(), usuario.getRol().name());
     }
 }

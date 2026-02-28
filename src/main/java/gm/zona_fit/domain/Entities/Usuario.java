@@ -10,6 +10,9 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
+import org.hibernate.annotations.ParamDef;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -22,6 +25,8 @@ import lombok.Setter;
         @UniqueConstraint(columnNames = "email"),
         @UniqueConstraint(columnNames = "cliente_id")
 })
+@FilterDef(name = "usuarioScopeFilter", parameters = @ParamDef(name = "usuarioId", type = Integer.class))
+@Filter(name = "usuarioScopeFilter", condition = "id = :usuarioId")
 @Getter
 @Setter
 @NoArgsConstructor

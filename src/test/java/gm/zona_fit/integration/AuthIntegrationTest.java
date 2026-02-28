@@ -90,13 +90,44 @@ class AuthIntegrationTest {
 
         mockMvc.perform(get("/usuarios")
                         .header("Authorization", "Bearer " + clienteToken))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].username").value("cliente"));
 
         var adminToken = loginAndGetToken("admin", "admin123");
 
         mockMvc.perform(get("/usuarios")
                         .header("Authorization", "Bearer " + adminToken))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2));
+    }
+
+    @Test
+    void usuarioGlobalFilter_shouldScopeClienteByTokenUserId_andNotRestrictAdmin() throws Exception {
+        var clienteToken = loginAndGetToken("cliente", "cliente123");
+
+        mockMvc.perform(get("/usuarios")
+                        .header("Authorization", "Bearer " + clienteToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(2))
+                .andExpect(jsonPath("$[0].username").value("cliente"));
+
+        mockMvc.perform(get("/usuarios/1")
+                        .header("Authorization", "Bearer " + clienteToken))
+                .andExpect(status().isNotFound());
+
+        var adminToken = loginAndGetToken("admin", "admin123");
+
+        mockMvc.perform(get("/usuarios")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2));
+
+        mockMvc.perform(get("/usuarios/1")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value("admin"));
     }
 
     private String loginAndGetToken(String username, String password) throws Exception {

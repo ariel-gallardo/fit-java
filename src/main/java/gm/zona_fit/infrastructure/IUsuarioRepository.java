@@ -12,6 +12,7 @@ import gm.zona_fit.domain.Entities.Usuario;
 @Repository
 public interface IUsuarioRepository extends JpaRepository<Usuario, Integer> {
     Optional<Usuario> findByUsername(String username);
+    Optional<Usuario> findOneById(Integer id);
     Optional<Usuario> findByEmail(String email);
     boolean existsByUsername(String username);
     boolean existsByEmail(String email);
