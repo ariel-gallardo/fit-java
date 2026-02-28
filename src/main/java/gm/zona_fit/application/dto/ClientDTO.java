@@ -1,5 +1,7 @@
 package gm.zona_fit.application.dto;
 
-public record ClientDTO(String nombre, String apellido, Integer membresia) {
+import java.time.LocalDateTime;
+
+public record ClientDTO(String nombre, String apellido, Integer membresia, LocalDateTime membresiaExpiraEn) {
     
 }

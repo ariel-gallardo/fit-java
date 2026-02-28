@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 
 import gm.zona_fit.application.dto.ClientDTO;
+import gm.zona_fit.application.dto.ClienteMembresiaPatchDTO;
 import gm.zona_fit.application.services.IClienteService;
 import gm.zona_fit.domain.Entities.Cliente;
 
@@ -19,6 +20,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PatchMapping;
 
 @RestController
 @RequestMapping("/clientes")
@@ -34,6 +36,11 @@ public class ClienteController {
             return ResponseEntity.ok(List.of(cliente));
         }
         return ResponseEntity.ok(clienteService.getAll());
+    }
+
+    @GetMapping("/membresias-vencidas")
+    public ResponseEntity<List<Cliente>> getMembresiasVencidas() {
+        return ResponseEntity.ok(clienteService.getWithExpiredMembresia());
     }
 
     @PostMapping
@@ -55,6 +62,16 @@ public class ClienteController {
             @PathVariable Integer id,
             @RequestBody ClientDTO clienteDTO) {
         clienteService.update(id, clienteDTO);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/membresia")
+    public ResponseEntity<Void> patchMembresia(
+            @PathVariable Integer id,
+            @RequestBody(required = false) ClienteMembresiaPatchDTO patchDTO) {
+        Integer membresiaId = patchDTO != null ? patchDTO.membresiaId() : null;
+        var membresiaExpiraEn = patchDTO != null ? patchDTO.membresiaExpiraEn() : null;
+        clienteService.patchMembresia(id, membresiaId, membresiaExpiraEn);
         return ResponseEntity.noContent().build();
     }
 

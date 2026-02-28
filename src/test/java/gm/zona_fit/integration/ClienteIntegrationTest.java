@@ -2,6 +2,7 @@ package gm.zona_fit.integration;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -36,7 +37,10 @@ class ClienteIntegrationTest {
         mockMvc.perform(get("/clientes"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(3))
-                .andExpect(jsonPath("$[0].nombre").value("Ana"));
+                                .andExpect(jsonPath("$[0].nombre").value("Ana"))
+                                                                .andExpect(jsonPath("$[0].membresia.id").value(1))
+                                                                .andExpect(jsonPath("$[0].membresia.tipo").value("SILVER"))
+                                                                .andExpect(jsonPath("$[0].membresiaExpiraEn").value("2030-01-01T00:00:00"));
     }
 
     @Test
@@ -58,7 +62,7 @@ class ClienteIntegrationTest {
     void create_shouldPersistAndReturnLocation() throws Exception {
         mockMvc.perform(post("/clientes")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"nombre\":\"Carlos\",\"apellido\":\"Lopez\",\"membresia\":250}"))
+                                                                .content("{\"nombre\":\"Carlos\",\"apellido\":\"Lopez\",\"membresia\":2,\"membresiaExpiraEn\":\"2031-12-31T00:00:00\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", org.hamcrest.Matchers.containsString("/clientes?id=")));
     }
@@ -67,13 +71,54 @@ class ClienteIntegrationTest {
     void update_shouldModifyExistingCliente() throws Exception {
         mockMvc.perform(put("/clientes/3")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"nombre\":\"MartaUpdated\",\"apellido\":\"DiazUpdated\",\"membresia\":999}"))
+                .content("{\"nombre\":\"MartaUpdated\",\"apellido\":\"DiazUpdated\",\"membresia\":3,\"membresiaExpiraEn\":\"2032-08-15T10:00:00\"}"))
                 .andExpect(status().isNoContent());
 
         mockMvc.perform(get("/clientes").param("id", "3"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].nombre").value("MartaUpdated"))
-                .andExpect(jsonPath("$[0].membresia").value(999));
+                .andExpect(jsonPath("$[0].membresia.id").value(3))
+                .andExpect(jsonPath("$[0].membresia.tipo").value("BRONZE"))
+                .andExpect(jsonPath("$[0].membresiaExpiraEn").value("2032-08-15T10:00:00"));
+    }
+
+    @Test
+    void patchMembresia_shouldAssignMembresiaToCliente() throws Exception {
+        mockMvc.perform(patch("/clientes/3/membresia")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"membresiaId\":1,\"membresiaExpiraEn\":\"2033-01-01T00:00:00\"}"))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/clientes").param("id", "3"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].membresia.id").value(1))
+                .andExpect(jsonPath("$[0].membresiaExpiraEn").value("2033-01-01T00:00:00"));
+    }
+
+    @Test
+    void patchMembresia_shouldRemoveMembresia_whenNull() throws Exception {
+        mockMvc.perform(patch("/clientes/2/membresia")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"membresiaId\":null,\"membresiaExpiraEn\":null}"))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/clientes").param("id", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].membresia").isEmpty())
+                .andExpect(jsonPath("$[0].membresiaExpiraEn").isEmpty());
+    }
+
+    @Test
+    void getMembresiasVencidas_shouldReturnExpiredClientes() throws Exception {
+        mockMvc.perform(patch("/clientes/1/membresia")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"membresiaId\":1,\"membresiaExpiraEn\":\"2020-01-01T00:00:00\"}"))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/clientes/membresias-vencidas"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(1));
     }
 
     @Test
