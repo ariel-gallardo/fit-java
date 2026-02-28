@@ -4,186 +4,91 @@ Aplicación Spring Boot para la gestión de clientes de un gimnasio.
 
 ## Descripción
 
-ZonaFit es una aplicación Java construida con Spring Boot que proporciona una API REST para la gestión integral de clientes de un centro de fitness, incluyendo funcionalidades de:
+ZonaFit es una API REST construida con Spring Boot para administrar clientes y sus membresías.
 
-- CRUD completo de clientes
-- Gestión de membresías
-- Aplicación de middleware para manejo centralizado de excepciones
-- Suite de pruebas completa (unitarias e integración)
+Funcionalidades principales:
+
+- CRUD completo de clientes.
+- Asociación opcional de membresía al cliente.
+- Tipo de membresía manejado con `enum` (`SILVER`, `GOLD`, `BRONZE`).
+- Persistencia del `enum` como `STRING` en base de datos.
+- Expiración de membresía por cliente (`membresiaExpiraEn`).
+- Middleware centralizado para manejo de errores.
+- Suite de pruebas unitarias e integración.
 
 ## Tecnología
 
 - **Framework**: Spring Boot 3.2.2
 - **Lenguaje**: Java 21
-- **Base de Datos**: H2 (desarrollo/testing), extensible a otras bases de datos
 - **ORM**: JPA/Hibernate
-- **Testing**: JUnit 5 (Jupiter), Mockito
+- **Base de datos (tests)**: H2 en memoria
+- **Testing**: JUnit 5 + Mockito
 - **Build**: Maven
-- **Utilidades**: Lombok
 
-## Estructura del Proyecto
+## Estructura del proyecto
 
 ```
 src/
-├── main/
-│   ├── java/gm/zona_fit/
-│   │   ├── ZonaFitApplication.java          # Punto de entrada
-│   │   ├── application/
-│   │   │   ├── dto/
-│   │   │   │   └── ClientDTO.java           # Data Transfer Object
-│   │   │   └── services/
-│   │   │       ├── ClienteService.java      # Lógica de negocio
-│   │   │       └── IClienteService.java     # Interfaz del servicio
-│   │   ├── domain/
-│   │   │   └── Entities/
-│   │   │       └── Cliente.java             # Entidad JPA
-│   │   ├── infrastructure/
-│   │   │   └── IClienteRepository.java      # Repositorio JPA
-│   │   └── presentation/
-│   │       ├── controllers/
-│   │       │   └── ClienteController.java   # Endpoints REST
-│   │       └── middlewares/
-│   │           └── EntityNotFoundMiddleware.java # Manejo de excepciones
-│   └── resources/
-│       ├── application.properties
-│       └── logback-spring.xml
+├── main/java/gm/zona_fit/
+│   ├── application/
+│   │   ├── dto/
+│   │   │   ├── ClientDTO.java
+│   │   │   ├── ClienteMembresiaPatchDTO.java
+│   │   │   └── MembresiaDTO.java
+│   │   └── services/
+│   │       ├── ClienteService.java
+│   │       └── IClienteService.java
+│   ├── domain/Entities/
+│   │   ├── Cliente.java
+│   │   ├── Membresia.java
+│   │   └── MembresiaTipo.java
+│   ├── infrastructure/
+│   │   ├── IClienteRepository.java
+│   │   └── IMembresiaRepository.java
+│   └── presentation/
+│       ├── controllers/ClienteController.java
+│       └── middlewares/EntityNotFoundMiddleware.java
 └── test/
     ├── java/gm/zona_fit/
     │   ├── unit/
-    │   │   ├── services/
-    │   │   │   └── ClienteServiceUnitTest.java      # Tests del servicio
+    │   │   ├── services/ClienteServiceUnitTest.java
     │   │   └── repositories/
-    │   │       └── ClienteRepositoryUnitTest.java   # Tests del repositorio
-    │   └── integration/
-    │       └── ClienteIntegrationTest.java          # Tests de API
+    │   │       ├── ClienteRepositoryUnitTest.java
+    │   │       └── MembresiaRepositoryUnitTest.java
+    │   └── integration/ClienteIntegrationTest.java
     └── resources/
         ├── application-tests.properties
-        └── fake-db.sql                              # Datos de prueba
+        └── fake-db.sql
 ```
 
-## Suite de Pruebas
+## Modelo de membresía
 
-### Arquitectura de Testing
-
-El proyecto implementa una estrategia de testing con dos tipos claramente separados:
-
-#### Tests Unitarios (`@Tag("unit/service")` y `@Tag("unit/repository")`)
-- **Ubicación**: `src/test/java/gm/zona_fit/unit/`
-- **Alcance**: Lógica de negocio y persistencia sin contexto HTTP
-- **Componentes probados**:
-  - **ClienteServiceUnitTest** (`@Tag("unit/service")`): Valida la lógica del servicio con repositorio mockeado (7 tests)
-  - **ClienteRepositoryUnitTest** (`@Tag("unit/repository")`): Prueba las operaciones JPA con H2 en memoria (4 tests)
-- **Aislamiento**: No requieren contexto completo de Spring
-- **Cobertura**: 11 tests unitarios en total
-
-#### Tests de Integración (`@Tag("integration")`)
-- **Ubicación**: `src/test/java/gm/zona_fit/integration/`
-- **Alcance**: API REST completa y persistencia en base de datos
-- **Componentes probados**:
-  - **ClienteIntegrationTest**: Valida endpoints REST (GET, POST, PUT, DELETE) con MockMvc (7 tests)
-- **Variables de entorno**: Contexto Spring completo, H2 en memoria, datos preconfigurados
-- **Cobertura**: 7 tests de integración
-
-### Configuración de Tests
-
-**Archivo**: `src/test/resources/application-tests.properties`
-```properties
-# Base de datos H2 en memoria
-spring.datasource.url=jdbc:h2:mem:testdb
-spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
-spring.jpa.hibernate.ddl-auto=create-drop
-spring.main.web-application-type=servlet
-```
-
-**Datos precargados**: `src/test/resources/fake-db.sql`
-- 3 clientes de prueba (Ana, Luis, Marta)
-- Identidad de secuencia reiniciada para evitar conflictos
-
-### Ejecución de Pruebas
-
-#### Ejecutar todos los tests
-```bash
-mvn test
-```
-Resultado esperado: 18 tests (11 unitarios + 7 integración)
-
-#### Ejecutar todos los tests unitarios
-```bash
-mvn test -Punit-tests
-```
-- Filtra por `@Tag("unit/service")` y `@Tag("unit/repository")`
-- Excluye paquete `**/controllers/**`
-- Resultado esperado: 11 tests (7 service + 4 repository)
-
-#### Ejecutar solo tests de servicio
-```bash
-mvn test -Punit-service-tests
-```
-- Filtra por `@Tag("unit/service")`
-- Resultado esperado: 7 tests (ClienteServiceUnitTest)
-
-#### Ejecutar solo tests de repositorio
-```bash
-mvn test -Punit-repository-tests
-```
-- Filtra por `@Tag("unit/repository")`
-- Resultado esperado: 4 tests (ClienteRepositoryUnitTest)
-
-#### Ejecutar solo tests de integración
-```bash
-mvn test -Pintegration-tests
-```
-- Filtra por `@Tag("integration")`
-- Incluye solo paquete `**/integration/**`
-- Resultado esperado: 7 tests (endpoints REST)
-
-#### Ejecutar test específico
-```bash
-mvn test -Dtest=ClienteServiceUnitTest
-mvn test -Dtest=ClienteRepositoryUnitTest
-mvn test -Dtest=ClienteIntegrationTest
-```
-
-### Cobertura de Tests
-
-#### ClienteServiceUnitTest (7 tests)
-- `getAll_shouldReturnAllClientes` - Lista todas los clientes
-- `getById_shouldReturnCliente_whenExists` - Obtiene un cliente existente
-- `getById_shouldThrow_whenNotExists` - Lanza excepción si no existe
-- `create_shouldPersistAndReturnId` - Crea nuevo cliente
-- `update_shouldPersistChanges_whenExists` - Actualiza cliente existente
-- `update_shouldThrow_whenNotExists` - Lanza excepción en actualización fallida
-- `delete_shouldDelete_whenExists` y `delete_shouldThrow_whenNotExists` - Elimina cliente
-
-#### ClienteRepositoryUnitTest (4 tests)
-- `findAll_shouldReturnSeededData` - Verifica datos precargados
-- `findById_shouldReturnCliente_whenExists` - Búsqueda por ID
-- `save_shouldPersistCliente` - Persistencia de nuevo cliente
-- `deleteById_shouldRemoveCliente` - Eliminación por ID
-
-#### ClienteIntegrationTest (7 tests)
-- `getAll_shouldReturnSeededClientes` - GET /clientes
-- `getById_shouldReturnOneCliente` - GET /clientes?id=2
-- `getById_shouldReturn404_whenMissing` - Manejo de errores
-- `create_shouldPersistAndReturnLocation` - POST /clientes
-- `update_shouldModifyExistingCliente` - PUT /clientes/3
-- `delete_shouldRemoveCliente` - DELETE /clientes/1
+- `Membresia.tipo` usa `MembresiaTipo` (`SILVER`, `GOLD`, `BRONZE`).
+- Se persiste como texto (`EnumType.STRING`).
+- Tiene índice en DB sobre la columna `tipo`.
+- `Cliente` tiene relación opcional con `Membresia`.
+- `Cliente` almacena fecha/hora de expiración en `membresiaExpiraEn`.
 
 ## API REST
 
 ### Endpoints
 
-#### Listar todos los clientes
+#### Listar clientes
 ```http
 GET /clientes
 ```
 
-#### Obtener cliente por ID
+#### Obtener cliente por id
 ```http
 GET /clientes?id={id}
 ```
 
-#### Crear nuevo cliente
+#### Listar clientes con membresía vencida
+```http
+GET /clientes/membresias-vencidas
+```
+
+#### Crear cliente
 ```http
 POST /clientes
 Content-Type: application/json
@@ -191,7 +96,8 @@ Content-Type: application/json
 {
   "nombre": "Juan",
   "apellido": "Pérez",
-  "membresia": 1
+  "membresia": 2,
+  "membresiaExpiraEn": "2031-12-31T00:00:00"
 }
 ```
 
@@ -203,7 +109,27 @@ Content-Type: application/json
 {
   "nombre": "Juan",
   "apellido": "García",
-  "membresia": 2
+  "membresia": 3,
+  "membresiaExpiraEn": "2032-08-15T10:00:00"
+}
+```
+
+#### Asociar/desasociar membresía (opcional)
+```http
+PATCH /clientes/{id}/membresia
+Content-Type: application/json
+
+{
+  "membresiaId": 1,
+  "membresiaExpiraEn": "2033-01-01T00:00:00"
+}
+```
+
+Para quitar membresía y expiración:
+```json
+{
+  "membresiaId": null,
+  "membresiaExpiraEn": null
 }
 ```
 
@@ -212,65 +138,83 @@ Content-Type: application/json
 DELETE /clientes/{id}
 ```
 
-## Compilación y Ejecución
+## Casos de uso
 
-### Compilar el proyecto
+### 1) Alta de cliente con membresía
+
+- Se crea el cliente con `membresia` (id de la membresía) y `membresiaExpiraEn`.
+- El backend valida que la membresía exista.
+- Si `membresia` viene en `null`, la expiración también queda en `null`.
+
+### 2) Renovación de membresía
+
+- Se usa `PATCH /clientes/{id}/membresia` con el mismo `membresiaId` y una nueva fecha en `membresiaExpiraEn`.
+- Permite extender vigencia sin tener que actualizar todos los datos del cliente.
+
+### 3) Cambio de plan
+
+- Se usa `PATCH /clientes/{id}/membresia` con un `membresiaId` distinto (`SILVER`, `GOLD` o `BRONZE`) y su nueva expiración.
+- El cliente conserva sus datos personales y solo cambia su relación de membresía.
+
+### 4) Baja de membresía
+
+- Se envía `membresiaId: null` y `membresiaExpiraEn: null`.
+- El cliente queda activo en el sistema pero sin membresía asociada.
+
+### 5) Consulta de membresías vencidas
+
+- Se usa `GET /clientes/membresias-vencidas`.
+- Devuelve clientes con membresía asignada cuya `membresiaExpiraEn` es anterior al momento actual.
+
+## Pruebas
+
+### Arquitectura
+
+- **Unitarias service**: `@Tag("unit/service")`
+- **Unitarias repository**: `@Tag("unit/repository")`
+- **Integración**: `@Tag("integration")`
+
+### Comandos
+
+```bash
+# Todos los tests
+mvn test
+
+# Unitarios (service + repository)
+mvn test -Punit-tests
+
+# Solo unitarios de service
+mvn test -Punit-service-tests
+
+# Solo unitarios de repository
+mvn test -Punit-repository-tests
+
+# Solo integración
+mvn test -Pintegration-tests
+```
+
+### Estado actual de cobertura
+
+Total esperado (según la última ejecución): **35 tests**.
+
+## Configuración de tests
+
+- Archivo: `src/test/resources/application-tests.properties`
+- Seed: `src/test/resources/fake-db.sql`
+  - Inserta membresías (`SILVER`, `GOLD`, `BRONZE`)
+  - Inserta clientes con y sin membresía
+  - Define expiración inicial para clientes con membresía
+
+## Compilación y ejecución
+
 ```bash
 mvn clean compile
-```
-
-### Empaquetar la aplicación
-```bash
 mvn clean package
+mvn spring-boot:run
 ```
 
-### Ejecutar la aplicación
-```bash
-# Con Maven
-mvn spring-boot:run
+O ejecuta el jar:
 
-# O con el JAR generado
+```bash
 java -jar target/zona_fit-0.0.1-SNAPSHOT.jar
 ```
-
-## Configuración
-
-### Propiedades de Aplicación
-
-**Archivo**: `src/main/resources/application.properties`
-
-Personaliza según tu entorno:
-- Configuración de base de datos
-- Perfil activo (development, production)
-- Nivel de logging
-
-## Notas Arquitectónicas
-
-### Separación de Responsabilidades
-- **Domain**: Entidades y modelos de negocio
-- **Application**: Servicios y DTOs
-- **Infrastructure**: Repositorios y acceso a datos
-- **Presentation**: Controladores y middleware
-
-### Manejo de Excepciones
-- `EntityNotFoundMiddleware`: Captura excepciones de entidades no encontradas
-- Respuestas HTTP consistentes con códigos de estado apropiados
-
-### Buenas Prácticas
-- Use de DTOs para transferencia de datos
-- Interfaces para contratación de servicios
-- Tests aislados sin dependencias externas
-- Uso de JUnit 5 con anotaciones modernas
-
-## Desarrollo Futuro
-
-- Implementación de más entidades (Membresías, Servicios)
-- Autenticación y autorización (JWT)
-- Documentación con Swagger/OpenAPI
-- Caching
-- Paginación en listados
-- Validaciones adicionales
-
-## Contacto y Contribuciones
-
-Para reportar bugs o contribuir, por favor abre un issue en el repositorio.

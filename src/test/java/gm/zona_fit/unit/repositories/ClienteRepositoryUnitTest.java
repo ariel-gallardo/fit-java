@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.LocalDateTime;
+
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +14,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
 
 import gm.zona_fit.domain.Entities.Cliente;
+import gm.zona_fit.domain.Entities.Membresia;
+import gm.zona_fit.domain.Entities.MembresiaTipo;
 import gm.zona_fit.infrastructure.IClienteRepository;
 
 @DataJpaTest
@@ -36,16 +40,23 @@ class ClienteRepositoryUnitTest {
 
         assertTrue(result.isPresent());
         assertEquals("Luis", result.get().nombre());
+        assertNotNull(result.get().getMembresia());
+        assertEquals(2, result.get().getMembresia().getId());
+        assertEquals(MembresiaTipo.GOLD, result.get().getMembresia().getTipo());
+        assertNotNull(result.get().getMembresiaExpiraEn());
     }
 
     @Test
     void save_shouldPersistCliente() {
-        var nuevo = new Cliente(null, "Carla", "Ruiz", 220);
+        var nuevo = new Cliente(null, "Carla", "Ruiz", new Membresia(1, MembresiaTipo.SILVER, null), java.time.LocalDateTime.parse("2032-12-01T00:00:00"));
 
         var saved = clienteRepository.save(nuevo);
 
         assertNotNull(saved.id());
         assertEquals("Carla", saved.nombre());
+        assertNotNull(saved.getMembresia());
+        assertEquals(1, saved.getMembresia().getId());
+        assertNotNull(saved.getMembresiaExpiraEn());
     }
 
     @Test
@@ -54,5 +65,13 @@ class ClienteRepositoryUnitTest {
 
         var result = clienteRepository.findById(1);
         assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findExpiredMembresias_shouldReturnExpiredClientes_beforeGivenDate() {
+        var result = clienteRepository
+                .findByMembresiaIsNotNullAndMembresiaExpiraEnIsNotNullAndMembresiaExpiraEnBefore(LocalDateTime.parse("2031-01-01T00:00:00"));
+
+        assertEquals(2, result.size());
     }
 }

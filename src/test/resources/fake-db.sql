@@ -1,7 +1,13 @@
 DELETE FROM cliente;
+DELETE FROM membresia;
 
-INSERT INTO cliente (id, nombre, apellido, membresia) VALUES (1, 'Ana', 'Gomez', 101);
-INSERT INTO cliente (id, nombre, apellido, membresia) VALUES (2, 'Luis', 'Perez', 102);
-INSERT INTO cliente (id, nombre, apellido, membresia) VALUES (3, 'Marta', 'Diaz', 103);
+INSERT INTO membresia (id, tipo, precio) VALUES (1, 'SILVER', 100);
+INSERT INTO membresia (id, tipo, precio) VALUES (2, 'GOLD', 200);
+INSERT INTO membresia (id, tipo, precio) VALUES (3, 'BRONZE', 300);
 
+INSERT INTO cliente (id, nombre, apellido, membresia_id, membresia_expira_en) VALUES (1, 'Ana', 'Gomez', 1, '2030-01-01T00:00:00');
+INSERT INTO cliente (id, nombre, apellido, membresia_id, membresia_expira_en) VALUES (2, 'Luis', 'Perez', 2, '2030-06-01T00:00:00');
+INSERT INTO cliente (id, nombre, apellido, membresia_id, membresia_expira_en) VALUES (3, 'Marta', 'Diaz', NULL, NULL);
+
+ALTER TABLE membresia ALTER COLUMN id RESTART WITH 4;
 ALTER TABLE cliente ALTER COLUMN id RESTART WITH 4;
