@@ -67,20 +67,20 @@ src/
 
 El proyecto implementa una estrategia de testing con dos tipos claramente separados:
 
-#### Tests Unitarios (`@Tag("unit")`)
+#### Tests Unitarios (`@Tag("unit/service")` y `@Tag("unit/repository")`)
 - **Ubicación**: `src/test/java/gm/zona_fit/unit/`
 - **Alcance**: Lógica de negocio y persistencia sin contexto HTTP
 - **Componentes probados**:
-  - **ClienteServiceUnitTest**: Valida la lógica del servicio con repositorio mockeado
-  - **ClienteRepositoryUnitTest**: Prueba las operaciones JPA con H2 en memoria
+  - **ClienteServiceUnitTest** (`@Tag("unit/service")`): Valida la lógica del servicio con repositorio mockeado (7 tests)
+  - **ClienteRepositoryUnitTest** (`@Tag("unit/repository")`): Prueba las operaciones JPA con H2 en memoria (4 tests)
 - **Aislamiento**: No requieren contexto completo de Spring
-- **Cobertura**: 11 tests unitarios
+- **Cobertura**: 11 tests unitarios en total
 
 #### Tests de Integración (`@Tag("integration")`)
 - **Ubicación**: `src/test/java/gm/zona_fit/integration/`
 - **Alcance**: API REST completa y persistencia en base de datos
 - **Componentes probados**:
-  - **ClienteIntegrationTest**: Valida endpoints REST (GET, POST, PUT, DELETE) con MockMvc
+  - **ClienteIntegrationTest**: Valida endpoints REST (GET, POST, PUT, DELETE) con MockMvc (7 tests)
 - **Variables de entorno**: Contexto Spring completo, H2 en memoria, datos preconfigurados
 - **Cobertura**: 7 tests de integración
 
@@ -107,13 +107,27 @@ mvn test
 ```
 Resultado esperado: 18 tests (11 unitarios + 7 integración)
 
-#### Ejecutar solo tests unitarios
+#### Ejecutar todos los tests unitarios
 ```bash
 mvn test -Punit-tests
 ```
-- Filtra por `@Tag("unit")`
+- Filtra por `@Tag("unit/service")` y `@Tag("unit/repository")`
 - Excluye paquete `**/controllers/**`
-- Resultado esperado: 11 tests (services + repositories)
+- Resultado esperado: 11 tests (7 service + 4 repository)
+
+#### Ejecutar solo tests de servicio
+```bash
+mvn test -Punit-service-tests
+```
+- Filtra por `@Tag("unit/service")`
+- Resultado esperado: 7 tests (ClienteServiceUnitTest)
+
+#### Ejecutar solo tests de repositorio
+```bash
+mvn test -Punit-repository-tests
+```
+- Filtra por `@Tag("unit/repository")`
+- Resultado esperado: 4 tests (ClienteRepositoryUnitTest)
 
 #### Ejecutar solo tests de integración
 ```bash
@@ -126,6 +140,7 @@ mvn test -Pintegration-tests
 #### Ejecutar test específico
 ```bash
 mvn test -Dtest=ClienteServiceUnitTest
+mvn test -Dtest=ClienteRepositoryUnitTest
 mvn test -Dtest=ClienteIntegrationTest
 ```
 

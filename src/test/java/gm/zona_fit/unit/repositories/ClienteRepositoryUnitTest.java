@@ -16,7 +16,7 @@ import gm.zona_fit.infrastructure.IClienteRepository;
 
 @DataJpaTest
 @ActiveProfiles("tests")
-@Tag("unit")
+@Tag("unit/repository")
 @Sql(scripts = "/fake-db.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 class ClienteRepositoryUnitTest {
 

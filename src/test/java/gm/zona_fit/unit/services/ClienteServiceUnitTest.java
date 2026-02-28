@@ -26,7 +26,7 @@ import gm.zona_fit.infrastructure.IClienteRepository;
 import jakarta.persistence.EntityNotFoundException;
 
 @ExtendWith(MockitoExtension.class)
-@Tag("unit")
+@Tag("unit/service")
 class ClienteServiceUnitTest {
 
     @Mock
